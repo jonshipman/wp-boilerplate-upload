@@ -28,5 +28,6 @@ add_action(
 			require_once 'includes/jwt.php';
 			require_once 'includes/upload.php';
 		}
-	}
+	},
+	11
 );
