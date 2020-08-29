@@ -34,7 +34,7 @@ add_filter(
 	'allowed_http_origins',
 	function( $origins ) {
 		$action = isset( $_REQUEST['action'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action'] ) ) : '';
-		if ( 'media_upload' === $action ) {
+		if ( apply_filters( 'wp_boilerplate_upload_action_name', 'media_upload' ) === $action ) {
 			header( 'Access-Control-Allow-Headers: Access-Control-Allow-Origin, Authorization' );
 		}
 
