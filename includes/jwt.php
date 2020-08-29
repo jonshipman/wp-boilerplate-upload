@@ -7,56 +7,59 @@
  */
 
 // Generate content asset tokens.
-function wp_boilerplate_upload_jwt_generate_asset_token( $asset_id, $type, $extra_meta = 0 ) {
-	$user = wp_get_current_user();
+if ( ! function_exists( 'wp_boilerplate_upload_jwt_generate_asset_token' ) ) {
+	function wp_boilerplate_upload_jwt_generate_asset_token( $asset_id, $type, $extra_meta = 0 ) {
+		$user = wp_get_current_user();
 
-	$token = array(
-		'iss'  => get_bloginfo( 'url' ),
-		'iat'  => time(),
-		'nbf'  => time() - 10,
-		'exp'  => apply_filters( 'wp_boilerplate_upload_asset_token_expiration', time() + 3600 ),
-		'data' => array(
-			'asset' => array(
-				'asset_id'   => $asset_id,
-				'type'       => $type,
-				'extra_meta' => $extra_meta,
-				'user_id'    => $user ? $user->ID : 0,
+		$token = array(
+			'iss'  => get_bloginfo( 'url' ),
+			'iat'  => time(),
+			'nbf'  => time() - 10,
+			'exp'  => apply_filters( 'wp_boilerplate_upload_asset_token_expiration', time() + 3600 ),
+			'data' => array(
+				'asset' => array(
+					'asset_id'   => $asset_id,
+					'type'       => $type,
+					'extra_meta' => $extra_meta,
+					'user_id'    => $user ? $user->ID : 0,
+				),
 			),
-		),
-	);
+		);
 
-	Firebase\JWT\JWT::$leeway = 60;
+		Firebase\JWT\JWT::$leeway = 60;
 
-	$token = Firebase\JWT\JWT::encode( $token, WPGraphQL\JWT_Authentication\Auth::get_secret_key() );
+		$token = Firebase\JWT\JWT::encode( $token, WPGraphQL\JWT_Authentication\Auth::get_secret_key() );
 
-	return $token;
+		return $token;
+	}
 }
 
 // Decode the asset token.
-function wp_boilerplate_upload_jwt_decode_asset_token( $token ) {
-	Firebase\JWT\JWT::$leeway = 60;
+if ( ! function_exists( 'wp_boilerplate_upload_jwt_decode_asset_token' ) ) {
+	function wp_boilerplate_upload_jwt_decode_asset_token( $token ) {
+		Firebase\JWT\JWT::$leeway = 60;
 
-	$secret = WPGraphQL\JWT_Authentication\Auth::get_secret_key();
+		$secret = WPGraphQL\JWT_Authentication\Auth::get_secret_key();
 
-	try {
-		$token = ! empty( $token ) ? Firebase\JWT\JWT::decode( $token, $secret, array( 'HS256' ) ) : null;
-	} catch ( \Exception $exception ) {
-		$token = new \WP_Error( 'invalid-secret-key', $exception->getMessage() );
-	}
-
-	if ( ! empty( $token ) && ! is_wp_error( $token ) ) {
-		if ( get_bloginfo( 'url' ) === $token->iss ) {
-			return $token->data->asset;
+		try {
+			$token = ! empty( $token ) ? Firebase\JWT\JWT::decode( $token, $secret, array( 'HS256' ) ) : null;
+		} catch ( \Exception $exception ) {
+			$token = new \WP_Error( 'invalid-secret-key', $exception->getMessage() );
 		}
-	}
 
-	return null;
+		if ( ! empty( $token ) && ! is_wp_error( $token ) ) {
+			if ( get_bloginfo( 'url' ) === $token->iss ) {
+				return $token->data->asset;
+			}
+		}
+
+		return null;
+	}
 }
 
 // Template redirect wrapper for decoding asset jwts.
-add_action(
-	'template_redirect',
-	function() {
+if ( ! function_exists( 'wp_boilerplate_upload_template_redirect' ) ) {
+	function wp_boilerplate_upload_template_redirect() {
 		global $wp_query;
 
 		$url_path = trim( parse_url( add_query_arg( array() ), PHP_URL_PATH ), '/' );
@@ -80,14 +83,14 @@ add_action(
 
 			die;
 		}
-	},
-	0
-);
+	}
+}
+
+add_action( 'template_redirect', 'wp_boilerplate_upload_template_redirect' );
 
 // Filter to decode the token, set headers, and set the current user.
-add_filter(
-	'wp_boilerplate_upload_asset_token',
-	function( $token, $token_string ) {
+if ( ! function_exists( 'wp_boilerplate_upload_asset_token_function' ) ) {
+	function wp_boilerplate_upload_asset_token_function( $token, $token_string ) {
 		if ( $token_string ) {
 			$token = wp_boilerplate_upload_jwt_decode_asset_token( $token_string );
 
@@ -120,7 +123,7 @@ add_filter(
 		}
 
 		return $token;
-	},
-	10,
-	2
-);
+	}
+}
+
+add_filter( 'wp_boilerplate_upload_asset_token', 'wp_boilerplate_upload_asset_token_function', 10, 2 );
