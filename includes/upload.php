@@ -1,7 +1,7 @@
 <?php
 
 // Creates an action for uploads.
-function wp_upload_react_media_upload_action() {
+function wp_boilerplate_upload_media_upload_action() {
 	$token = WPGraphQL\JWT_Authentication\Auth::validate_token();
 	if ( ! empty( $token ) && ! is_wp_error( $token ) ) {
 		wp_set_current_user( $token->data->user->id );
@@ -11,7 +11,7 @@ function wp_upload_react_media_upload_action() {
 					$file = wp_unslash( $_FILES['file'] );
 					$mime = mime_content_type( $file['tmp_name'] );
 
-					do_action( 'wp_upload_react_media_upload', $file, $mime );
+					do_action( 'wp_boilerplate_upload_media_upload', $file, $mime );
 					die;
 			}
 		} else {
@@ -26,8 +26,8 @@ function wp_upload_react_media_upload_action() {
 	die;
 }
 
-add_action( 'wp_ajax_nopriv_media_upload', 'wp_upload_react_media_upload_action' );
-add_action( 'wp_ajax_media_upload', 'wp_upload_react_media_upload_action' );
+add_action( 'wp_ajax_nopriv_media_upload', 'wp_boilerplate_upload_media_upload_action' );
+add_action( 'wp_ajax_media_upload', 'wp_boilerplate_upload_media_upload_action' );
 
 // Allows the wp-ajax to correctly pre-flight the action.
 add_filter(
@@ -43,7 +43,7 @@ add_filter(
 );
 
 // Used in ajax. Takes a file and puts it in the media gallery.
-function wp_upload_react_media_library_upload( $file, $mime ) {
+function wp_boilerplate_upload_media_library_upload( $file, $mime ) {
 	if ( in_array( $mime, get_allowed_mime_types() ) ) {
 		$upload   = wp_upload_dir();
 		$new_file = sprintf( '%s/%s', $upload['path'], $file['name'] );
@@ -77,4 +77,4 @@ function wp_upload_react_media_library_upload( $file, $mime ) {
 	}
 }
 
-add_action( 'wp_upload_react_media_upload', 'wp_upload_react_media_library_upload', 10, 2 );
+add_action( 'wp_boilerplate_upload_media_upload', 'wp_boilerplate_upload_media_library_upload', 10, 2 );

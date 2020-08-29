@@ -3,18 +3,18 @@
 /**
  * Provides a way to access files behind a post by way of a jwt.
  * Save the content path to a post_meta and load the contents
- * via the wp_upload_react_asset_token_content action.
+ * via the wp_boilerplate_upload_asset_token_content action.
  */
 
 // Generate content asset tokens.
-function wp_upload_react_jwt_generate_asset_token( $asset_id, $type, $extra_meta = 0 ) {
+function wp_boilerplate_upload_jwt_generate_asset_token( $asset_id, $type, $extra_meta = 0 ) {
 	$user = wp_get_current_user();
 
 	$token = array(
 		'iss'  => get_bloginfo( 'url' ),
 		'iat'  => time(),
 		'nbf'  => time() - 10,
-		'exp'  => apply_filters( 'wp_upload_react_asset_token_expiration', time() + 3600 ),
+		'exp'  => apply_filters( 'wp_boilerplate_upload_asset_token_expiration', time() + 3600 ),
 		'data' => array(
 			'asset' => array(
 				'asset_id'   => $asset_id,
@@ -33,7 +33,7 @@ function wp_upload_react_jwt_generate_asset_token( $asset_id, $type, $extra_meta
 }
 
 // Decode the asset token.
-function wp_upload_react_jwt_decode_asset_token( $token ) {
+function wp_boilerplate_upload_jwt_decode_asset_token( $token ) {
 	Firebase\JWT\JWT::$leeway = 60;
 
 	$secret = WPGraphQL\JWT_Authentication\Auth::get_secret_key();
@@ -66,13 +66,13 @@ add_action(
 			$token_string = end( $parts );
 
 			// Decode the token passed.
-			$token = apply_filters( 'wp_upload_react_asset_token', array(), $token_string );
+			$token = apply_filters( 'wp_boilerplate_upload_asset_token', array(), $token_string );
 
 			if ( ! empty( $token ) ) {
 				list( $asset_id, $type, $extra_meta ) = $token;
 
 				// Token is not blocked. Proceed to run asset actions.
-				do_action( 'wp_upload_react_asset_token_content', $asset_id, $type, $token_string, $extra_meta );
+				do_action( 'wp_boilerplate_upload_asset_token_content', $asset_id, $type, $token_string, $extra_meta );
 			} else {
 				$wp_query->is_404 = false;
 				header( 'HTTP/1.1 403 FORBIDDEN' );
@@ -86,10 +86,10 @@ add_action(
 
 // Filter to decode the token, set headers, and set the current user.
 add_filter(
-	'wp_upload_react_asset_token',
+	'wp_boilerplate_upload_asset_token',
 	function( $token, $token_string ) {
 		if ( $token_string ) {
-			$token = wp_upload_react_jwt_decode_asset_token( $token_string );
+			$token = wp_boilerplate_upload_jwt_decode_asset_token( $token_string );
 
 			if ( $token ) {
 				$asset_id   = $token->asset_id;
@@ -104,7 +104,7 @@ add_filter(
 					wp_set_current_user( $user_id );
 
 					// Add in expiration headers.
-					if ( apply_filters( 'wp_upload_react_asset_expiry_headers', true ) ) {
+					if ( apply_filters( 'wp_boilerplate_upload_asset_expiry_headers', true ) ) {
 						header( 'Expires: ' . gmdate( 'D, d M Y H:i:s \G\M\T', time() + 3600 ) );
 						header( 'Cache-Control: private' );
 					}
