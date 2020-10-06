@@ -57,6 +57,20 @@ if ( ! function_exists( 'wp_boilerplate_upload_jwt_decode_asset_token' ) ) {
 	}
 }
 
+// Helper that will load the template redirect in case of another hook conflict.
+if ( ! function_exists( 'wp_boilerplate_upload_template_redirect_helper' ) ) {
+	function wp_boilerplate_upload_template_redirect_helper() {
+		$url_path = trim( parse_url( add_query_arg( array() ), PHP_URL_PATH ), '/' );
+
+		if ( 0 === stripos( $url_path, 'asset/' ) ) {
+			remove_all_actions( 'template_redirect' );
+			add_action( 'template_redirect', 'wp_boilerplate_upload_template_redirect' );
+		}
+	}
+}
+
+add_action( 'init', 'wp_boilerplate_upload_template_redirect_helper' );
+
 // Template redirect wrapper for decoding asset jwts.
 if ( ! function_exists( 'wp_boilerplate_upload_template_redirect' ) ) {
 	function wp_boilerplate_upload_template_redirect() {
@@ -64,29 +78,25 @@ if ( ! function_exists( 'wp_boilerplate_upload_template_redirect' ) ) {
 
 		$url_path = trim( parse_url( add_query_arg( array() ), PHP_URL_PATH ), '/' );
 
-		if ( 0 === stripos( $url_path, 'asset/' ) ) {
-			$parts        = explode( '/', rtrim( $url_path, '/' ) );
-			$token_string = end( $parts );
+		$parts        = explode( '/', rtrim( $url_path, '/' ) );
+		$token_string = end( $parts );
 
-			// Decode the token passed.
-			$token = apply_filters( 'wp_boilerplate_upload_asset_token', array(), $token_string );
+		// Decode the token passed.
+		$token = apply_filters( 'wp_boilerplate_upload_asset_token', array(), $token_string );
 
-			if ( ! empty( $token ) ) {
-				list( $asset_id, $type, $extra_meta ) = $token;
+		if ( ! empty( $token ) ) {
+			list( $asset_id, $type, $extra_meta ) = $token;
 
-				// Token is not blocked. Proceed to run asset actions.
-				do_action( 'wp_boilerplate_upload_asset_token_content', $asset_id, $type, $token_string, $extra_meta );
-			} else {
-				$wp_query->is_404 = false;
-				header( 'HTTP/1.1 403 FORBIDDEN' );
-			}
-
-			die;
+			// Token is not blocked. Proceed to run asset actions.
+			do_action( 'wp_boilerplate_upload_asset_token_content', $asset_id, $type, $token_string, $extra_meta );
+		} else {
+			$wp_query->is_404 = false;
+			header( 'HTTP/1.1 403 FORBIDDEN' );
 		}
+
+		die;
 	}
 }
-
-add_action( 'template_redirect', 'wp_boilerplate_upload_template_redirect' );
 
 // Filter to decode the token, set headers, and set the current user.
 if ( ! function_exists( 'wp_boilerplate_upload_asset_token_function' ) ) {

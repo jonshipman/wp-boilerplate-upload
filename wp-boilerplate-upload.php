@@ -3,7 +3,7 @@
 /*
 Plugin Name: React Boilerplate Upload Plugin
 Description: Facilitates the nessesary WP hooks for https://github.com/jonshipman/wp-boilerplate-upload
-Version: 1.0
+Version: 1.0.1
 Author: Jon Shipman
 Text Domain: wp-boilerplate-upload
 
@@ -25,8 +25,8 @@ add_action(
 
 		// Require based on if WP-GraphQL is installed.
 		if ( function_exists( 'register_graphql_field' ) ) {
-			require_once 'includes/jwt.php';
-			require_once 'includes/upload.php';
+			require_once __DIR__ . '/includes/jwt.php';
+			require_once __DIR__ . '/includes/upload.php';
 		}
 	},
 	11
