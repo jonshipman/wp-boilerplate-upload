@@ -3,6 +3,8 @@
 // Creates an action for uploads.
 if ( ! function_exists( 'wp_boilerplate_upload_media_upload_action' ) ) {
 	function wp_boilerplate_upload_media_upload_action() {
+		do_action( 'wp_boilerplate_upload_preflight' );
+
 		$token = WPGraphQL\JWT_Authentication\Auth::validate_token();
 		if ( ! empty( $token ) && ! is_wp_error( $token ) ) {
 			wp_set_current_user( $token->data->user->id );
@@ -28,22 +30,51 @@ if ( ! function_exists( 'wp_boilerplate_upload_media_upload_action' ) ) {
 	}
 }
 
-add_action( 'wp_ajax_nopriv_media_upload', 'wp_boilerplate_upload_media_upload_action' );
-add_action( 'wp_ajax_media_upload', 'wp_boilerplate_upload_media_upload_action' );
+// Allows us to preflight from the frontend with cors.
+if ( ! function_exists( 'wp_boilerplate_upload_preflight' ) ) {
+	function wp_boilerplate_upload_preflight() {
+		$request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? $_SERVER['REQUEST_METHOD'] : 'GET';
 
-// Allows the wp-ajax to correctly pre-flight the action.
-if ( ! function_exists( 'wp_boilerplate_upload_allowed_http_origins' ) ) {
-	function wp_boilerplate_upload_allowed_http_origins( $origins ) {
-		$action = isset( $_REQUEST['action'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action'] ) ) : '';
-		if ( apply_filters( 'wp_boilerplate_upload_action_name', 'media_upload' ) === $action ) {
-			header( 'Access-Control-Allow-Headers: Access-Control-Allow-Origin, Authorization' );
+		$origin = get_http_origin();
+
+		if ( is_allowed_http_origin( $origin ) ) {
+			header( 'Access-Control-Allow-Origin: ' . $origin );
+			header( 'Access-Control-Allow-Credentials: true' );
+			header( 'Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE' );
+			header( 'Access-Control-Allow-Headers: Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Origin, Authorization, Credentials, Content-Type' );
+			http_response_code(200);
+
+			if ( 'OPTIONS' === $request_method ) {
+				exit;
+			}
 		}
-
-		return $origins;
 	}
 }
 
-add_filter( 'allowed_http_origins',	'wp_boilerplate_upload_allowed_http_origins' );
+add_action( 'wp_boilerplate_upload_preflight', 'wp_boilerplate_upload_preflight' );
+
+// By wrapping the template redirect in this action, we can override without url sniffing.
+if ( ! function_exists( 'wp_boilerplate_upload_media_upload_template_redirect' ) ) {
+	function wp_boilerplate_upload_media_upload_template_redirect() {
+		add_action( 'template_redirect', 'wp_boilerplate_upload_media_upload_action' );
+	}
+}
+
+add_action( 'wp_boilerplate_upload_media_upload_template_redirect', 'wp_boilerplate_upload_media_upload_template_redirect' );
+
+// Helper that will load the template redirect in case of another hook conflict.
+if ( ! function_exists( 'wp_boilerplate_upload_action_redirect_helper' ) ) {
+	function wp_boilerplate_upload_action_redirect_helper() {
+		$url_path = trim( parse_url( add_query_arg( array() ), PHP_URL_PATH ), '/' );
+
+		if ( 0 === stripos( $url_path, 'wp_boilerplate_upload_ajax' ) ) {
+			remove_all_actions( 'template_redirect' );
+			do_action( 'wp_boilerplate_upload_media_upload_template_redirect' );
+		}
+	}
+}
+
+add_action( 'init', 'wp_boilerplate_upload_action_redirect_helper' );
 
 // Used in ajax. Takes a file and puts it in the media gallery.
 if ( ! function_exists( 'wp_boilerplate_upload_media_library_upload' ) ) {
@@ -76,9 +107,14 @@ if ( ! function_exists( 'wp_boilerplate_upload_media_library_upload' ) ) {
 				}
 			}
 
+			header( 'HTTP/1.1 500 UPLOAD NOT MOVED' );
 			echo 0;
 			return;
 		}
+
+		header( 'HTTP/1.1 403 FORBIDDEN' );
+		echo 0;
+		return;
 	}
 }
 

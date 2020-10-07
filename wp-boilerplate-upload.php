@@ -3,7 +3,7 @@
 /*
 Plugin Name: React Boilerplate Upload Plugin
 Description: Facilitates the nessesary WP hooks for https://github.com/jonshipman/wp-boilerplate-upload
-Version: 1.0.1
+Version: 1.0.2
 Author: Jon Shipman
 Text Domain: wp-boilerplate-upload
 
